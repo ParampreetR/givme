@@ -1,0 +1,4 @@
+/target
+cred_debug.db
+Cargo.lock
+note.txt

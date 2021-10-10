@@ -1,0 +1,18 @@
+[package]
+edition = "2018"
+name = "givme"
+version = "0.1.0"
+
+[dependencies]
+base64 = "0.13.0"
+clap = "2.33.3"
+home = "0.5.3"
+lazy_static = "1.4.0"
+nettle = "7.0.2"
+rand = "0.8.4"
+sqlite = "0.26.0"
+whoami = "1.1.5"
+
+
+
+
