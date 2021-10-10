@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use nettle::cipher::{Cipher, Des3, Twofish};
 use rand::random;
+use rpassword::read_password;
 use sqlite::{Connection, State};
 use std::{env, env::consts::OS, io::Write, path::Path};
 
@@ -121,9 +122,7 @@ pub fn is_first_run(handle: &GivMe) -> Result<bool, String> {
 pub fn ask_user_for_value(key: &str) -> Result<Credentials, std::io::Error> {
     print!("Enter your '{}': ", key);
     std::io::stdout().flush()?;
-    let mut password = String::new();
-    std::io::stdin().read_line(&mut password)?;
-    password = password.trim().to_string();
+    let password = read_password().unwrap().trim().to_string();
     print!("Any note for yourself: ");
     std::io::stdout().flush()?;
     let mut info = String::new();
@@ -266,12 +265,9 @@ pub fn run_setup(handle: &mut GivMe) -> Result<bool, bool> {
     println!("[+++] First Run Setup [+++]");
 
     loop {
-        password = String::new();
-        confirm_password = String::new();
         print!("Set your master key: ");
         std::io::stdout().flush().unwrap();
-        std::io::stdin().read_line(&mut password).unwrap();
-        password = password.trim().to_string();
+        password = read_password().unwrap().trim().to_string();
         debug("Adjusting password size");
         if common_passes.contains(&password.as_str()) {
             if warn_given {
@@ -284,8 +280,7 @@ pub fn run_setup(handle: &mut GivMe) -> Result<bool, bool> {
         } else {
             print!("Confirm your master key: ");
             std::io::stdout().flush().unwrap();
-            std::io::stdin().read_line(&mut confirm_password).unwrap();
-            confirm_password = confirm_password.trim().to_string();
+            confirm_password = read_password().unwrap().trim().to_string();
             if confirm_password != password {
                 eprintln!("Unmatched Master key. Try Again...\n");
             } else {
@@ -357,9 +352,7 @@ pub fn adjust_password_length(input_password: &str, length: usize) -> String {
 pub fn ask_pass_and_extract_key(handle: &mut GivMe) -> Result<bool, bool> {
     eprint!("Enter your Master Key: ");
     std::io::stdout().flush().unwrap();
-    let mut user_entered_pass = String::new();
-    std::io::stdin().read_line(&mut user_entered_pass).unwrap();
-    user_entered_pass = user_entered_pass.trim().to_string();
+    let user_entered_pass = read_password().unwrap().trim().to_string();
     let proper_length_password = adjust_password_length(&user_entered_pass, 24);
     let encrypted_key = base64::decode(&get_from_sql("secret_key", handle)[0].value).unwrap();
     let decrypted_pass = decrypt(

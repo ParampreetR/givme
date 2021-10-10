@@ -10,6 +10,7 @@ home = "0.5.3"
 lazy_static = "1.4.0"
 nettle = "7.0.2"
 rand = "0.8.4"
+rpassword = "5.0.1"
 sqlite = "0.26.0"
 whoami = "1.1.5"
 

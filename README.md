@@ -4,7 +4,7 @@ A password manager built in Rust that is simple to use and safe. When you ask fo
 
 ## Why GivMe
 
-- Uses 2 of the world strongest strongest encryption algorithms.
+- Uses 2 of the world strongest encryption algorithms.
 - Dependencies > 75.
 - Easy installation with `cargo`.
 - Written in Rust.
@@ -13,12 +13,12 @@ A password manager built in Rust that is simple to use and safe. When you ask fo
 
 ## GivMe Setup
 
- ```shell
- $ givme
- [+++] First Run Setup [+++]
- Set your master key: hello123
- Confirm your master key: hello123
- ```
+```shell
+$ givme
+[+++] First Run Setup [+++]
+Set your master key: hello123
+Confirm your master key: hello123
+```
 
 ## Saving Passwords
 
@@ -26,7 +26,7 @@ A password manager built in Rust that is simple to use and safe. When you ask fo
 $ givme --store mypassword
 Enter your Master Key: hello123
 Enter your 'mypassword': thisismypassword
-Any note for yourself: Please don't lost this password
+Any note for yourself: Please don\'t lost this password
 Saved Successfully
 ```
 
@@ -41,4 +41,3 @@ Note: Please don\'t lost this password
 ```
 
 ### Currently Under Development
-
