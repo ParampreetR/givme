@@ -4,6 +4,7 @@ name = "givme"
 version = "0.1.0"
 description = "A password manager built in Rust that is simple to use and safe"
 repository = "https://github.com/ParampreetR/givme.git"
+license = "Apache-2.0"
 
 [dependencies]
 base64 = "0.13.0"
