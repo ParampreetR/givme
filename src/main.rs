@@ -1,5 +1,6 @@
 use clap::{App, Arg};
 use givme::*;
+use std::{io, io::Write};
 
 fn main() {
     let mut app = App::new("givme")
@@ -19,13 +20,14 @@ fn main() {
                 .required(false)
                 .takes_value(true)
                 .index(1),
+        )
+        .arg(
+            Arg::with_name("raw")
+                .short("r")
+                .required(false)
+                .takes_value(false)
+                .help("Outputs only value for a key"),
         );
-    // .arg(
-    //     Arg::with_name("v")
-    //         .short("v")
-    //         .multiple(true)
-    //         .help("Sets the level of verbosity"),
-    // )
     // .subcommand(
     //     SubCommand::with_name("test")
     //         .about("controls testing features")
@@ -64,7 +66,12 @@ fn main() {
         if ask_pass_and_extract_key(&mut handle).unwrap() {
             let cred_to_give =
                 give_credentials(args.value_of("key").unwrap().to_string(), &mut handle).unwrap();
-            show_credentials(&cred_to_give);
+            if args.is_present("raw") {
+                print!("{}", cred_to_give.value);
+                io::stdout().flush().unwrap();
+            } else {
+                show_credentials(&cred_to_give);
+            }
         }
     } else {
         app.print_help().unwrap();
