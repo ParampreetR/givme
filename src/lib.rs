@@ -228,6 +228,20 @@ pub fn save_to_sql(cred: Credentials, handle: &mut GivMe) -> Result<(), sqlite::
     ))
 }
 
+/// Deletes data to Sqlite database
+pub fn del_from_sql(key: String, handle: &mut GivMe) -> Result<(), sqlite::Error> {
+    if handle.sql_con.is_none() {
+        eprintln!("Sql connection was not initialized when saving data from sql");
+        std::process::exit(1);
+    }
+
+    handle
+        .sql_con
+        .as_ref()
+        .unwrap()
+        .execute(format!("DELETE FROM cred WHERE key='{}'", key))
+}
+
 /// SetUp Sqlite Database. Like create new Database file and Create
 /// new table in newly created Database file
 pub fn setup_sql(handle: &mut GivMe) {
@@ -474,6 +488,14 @@ pub fn save_credentials(mut cred: Credentials, handle: &mut GivMe) -> Result<boo
             }
         }
         Err(e) => Err(e.to_string()),
+    }
+}
+
+pub fn delete_credentails(mut key: String, handle: &mut GivMe) -> Result<bool, String> {
+    key = base64::encode(encrypt(key, handle).unwrap());
+    match del_from_sql(key, handle) {
+        Ok(_r) => Ok(true),
+        Err(err) => Err(err.to_string()),
     }
 }
 

@@ -27,6 +27,15 @@ fn main() {
                 .required(false)
                 .takes_value(false)
                 .help("Outputs only value for a key"),
+        )
+        .arg(
+            Arg::with_name("delete")
+                .short("d")
+                .required(false)
+                .value_name("KEY")
+                .long("delete")
+                .takes_value(true)
+                .help("Deletes key value pair of given key"),
         );
     // .subcommand(
     //     SubCommand::with_name("test")
@@ -40,7 +49,7 @@ fn main() {
     //         ),
     // )
     let args = app.clone().get_matches();
-
+    let mut arg_hit = false;
     let mut handle = GivMe::new();
     get_os_and_username(&mut handle);
     if is_first_run(&handle).unwrap() {
@@ -49,7 +58,24 @@ fn main() {
     } else {
         get_sql_con(&mut handle);
     }
+
+    if args.is_present("delete") {
+        arg_hit = true;
+        if ask_pass_and_extract_key(&mut handle).unwrap() {
+            let key_to_delete = args.value_of("delete").unwrap().to_string();
+            match delete_credentails(key_to_delete.clone(), &mut handle) {
+                Ok(_) => {
+                    println!("'{}' deleted successfully", key_to_delete);
+                }
+                Err(err) => {
+                    eprintln!("-- Error in deleting '{}'", key_to_delete);
+                    eprintln!("{}", err);
+                }
+            };
+        }
+    }
     if args.is_present("store") {
+        arg_hit = true;
         if ask_pass_and_extract_key(&mut handle).unwrap() {
             let cred = ask_user_for_value(args.value_of("store").unwrap()).unwrap();
             match save_credentials(cred, &mut handle) {
@@ -63,17 +89,24 @@ fn main() {
             }
         }
     } else if args.is_present("key") {
+        arg_hit = true;
         if ask_pass_and_extract_key(&mut handle).unwrap() {
-            let cred_to_give =
-                give_credentials(args.value_of("key").unwrap().to_string(), &mut handle).unwrap();
-            if args.is_present("raw") {
-                print!("{}", cred_to_give.value);
-                io::stdout().flush().unwrap();
-            } else {
-                show_credentials(&cred_to_give);
-            }
+            match give_credentials(args.value_of("key").unwrap().to_string(), &mut handle) {
+                Some(cred) => {
+                    if args.is_present("raw") {
+                        print!("{}", cred.value);
+                        io::stdout().flush().unwrap();
+                    } else {
+                        show_credentials(&cred);
+                    }
+                }
+                None => {
+                    eprintln!("-- Error: '{}' not found! ", args.value_of("key").unwrap());
+                }
+            };
         }
-    } else {
+    }
+    if !arg_hit {
         app.print_help().unwrap();
     }
 }
