@@ -3,7 +3,7 @@ use nettle::cipher::{Cipher, Des3, Twofish};
 use rand::random;
 use rpassword::read_password;
 use sqlite::{Connection, State};
-use std::{env, env::consts::OS, io::Write, path::Path};
+use std::{env, env::consts::OS, fs, io, io::Write, path::Path};
 
 lazy_static! {
     static ref DEBUG: bool = env::var("GIVME_DEBUG").is_ok();
@@ -424,13 +424,11 @@ pub fn give_credentials(key: String, handle: &mut GivMe) -> Option<Credentials> 
         creds[0].key = key;
         creds[0].value = decrypt(&base64::decode(creds[0].value.clone()).unwrap(), handle)
             .unwrap()
-            .trim_matches(char::from(0))
             .to_string();
         if let Some(info) = &creds[0].info {
             creds[0].info = Some(
                 decrypt(&base64::decode(info).unwrap(), handle)
                     .unwrap()
-                    .trim_matches(char::from(0))
                     .to_string(),
             );
             Some(creds[0].clone())
@@ -458,6 +456,30 @@ fn already_exist_in_sql(key: String, handle: &mut GivMe) -> Result<bool, sqlite:
         }
         Err(err) => Err(err),
     }
+}
+
+/// Encrypt a file with 2 step encryption. File can be decrypted
+/// on same computer on which it was encrypted.
+///
+/// ~This function do not empose any restrictions on size of file.
+/// On large files, use at own risk
+pub fn encrypt_file(in_path: String, out_path: String, handle: &mut GivMe) -> io::Result<()> {
+    fs::write(&out_path, "".to_string())?; /* Check if we have privileges to write to target dest */
+    let data = fs::read_to_string(&in_path)?;
+    let encrypted_data = base64::encode(encrypt(data, handle).unwrap());
+    fs::write(&out_path, encrypted_data)
+}
+
+/// Encrypt a file with 2 step decryption. File should be encrypted
+/// on same computer on which it needs to decrypted.
+///
+/// ~This function do not empose any restrictions on size of file.
+/// On large files, use at own risk
+pub fn decrypt_file(in_path: String, out_path: String, handle: &mut GivMe) -> io::Result<()> {
+    fs::write(&out_path, "".to_string())?; /* Check if we have privileges to write to target dest */
+    let data = fs::read_to_string(&in_path)?;
+    let decrypted_data = decrypt(&base64::decode(data).unwrap(), handle).unwrap();
+    fs::write(&out_path, decrypted_data)
 }
 
 /// Prints Credential struct to a user. Mainly used to
@@ -593,7 +615,7 @@ pub fn decrypt(data: &[u8], handle: &GivMe) -> Result<String, String> {
         .decrypt(&mut two_step_decrypted[..], &one_step_decrypted);
     debug(format!("{:?}", &two_step_decrypted[..]).as_str());
     match std::str::from_utf8(&two_step_decrypted) {
-        Ok(v) => Ok(v.to_string()),
+        Ok(v) => Ok(v.trim_matches(char::from(0)).to_string()),
         Err(e) => Err(e.to_string()),
     }
 }

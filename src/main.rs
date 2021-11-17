@@ -36,6 +36,24 @@ fn main() {
                 .long("delete")
                 .takes_value(true)
                 .help("Deletes key value pair of given key"),
+        )
+        .arg(
+            Arg::with_name("encrypt-file")
+                .required(false)
+                .value_name("SOURCE and DESTINATION FILE")
+                .long("enc-file")
+                .takes_value(true)
+                .number_of_values(2)
+                .help("Encrypts specified file"),
+        )
+        .arg(
+            Arg::with_name("decrypt-file")
+                .required(false)
+                .value_name("SOURCE and DESTINATION FILE")
+                .long("dec-file")
+                .takes_value(true)
+                .number_of_values(2)
+                .help("Decrypts specified encrypted file"),
         );
     // .subcommand(
     //     SubCommand::with_name("test")
@@ -57,6 +75,45 @@ fn main() {
         std::process::exit(0);
     } else {
         get_sql_con(&mut handle);
+    }
+
+    if args.is_present("encrypt-file") {
+        arg_hit = true;
+        if ask_pass_and_extract_key(&mut handle).unwrap() {
+            let paths: Vec<&str> = args.values_of("encrypt-file").unwrap().collect();
+            let in_path = paths[0];
+            let out_path = paths[1];
+            match encrypt_file(in_path.to_string(), out_path.to_string(), &mut handle) {
+                Ok(_) => {
+                    println!("{} Encrypted Successfully to {}", in_path, out_path);
+                }
+                Err(err) => {
+                    eprintln!("-- Error in Encryption of file '{}'", in_path);
+                    if err.kind() == io::ErrorKind::InvalidData {
+                        eprintln!("[!>] Only pure text files can be encrypted");
+                    }
+                    eprintln!("{:?}", err);
+                }
+            };
+        }
+    }
+
+    if args.is_present("decrypt-file") {
+        arg_hit = true;
+        if ask_pass_and_extract_key(&mut handle).unwrap() {
+            let paths: Vec<&str> = args.values_of("decrypt-file").unwrap().collect();
+            let in_path = paths[0];
+            let out_path = paths[1];
+            match decrypt_file(in_path.to_string(), out_path.to_string(), &mut handle) {
+                Ok(_) => {
+                    println!("{} Decrypted Successfully to {}", in_path, out_path);
+                }
+                Err(err) => {
+                    eprintln!("-- Error in Decryption of file '{}'", in_path);
+                    eprintln!("{}", err);
+                }
+            };
+        }
     }
 
     if args.is_present("delete") {
