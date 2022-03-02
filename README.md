@@ -1,6 +1,6 @@
 # GivMe
 
-A password manager built in Rust that is simple to use and safe. When you ask for your password, save it with an optional note for yourself, and you'll be reminded with that note.
+A password manager built in Rust that is simple to use and safe. Save your passwords with an optional note for yourself.
 
 ## Why GivMe
 
