@@ -13,7 +13,7 @@ A password manager built in Rust that is simple to use and safe. Save your passw
 
 ## GivMe Setup
 
-```shell
+```plain
 $ givme
 [+++] First Run Setup [+++]
 Set your master key: hello123
@@ -22,7 +22,7 @@ Confirm your master key: hello123
 
 ## Saving Passwords
 
-```shell
+```plain
 $ givme --store mypassword
 Enter your Master Key: hello123
 Enter your 'mypassword': thisismypassword
@@ -32,7 +32,7 @@ Saved Successfully
 
 ## Retrieving Passwords
 
-```shell
+```plain
 $ givme mypassword
 Enter your Master Key: hello123
 
