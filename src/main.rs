@@ -100,6 +100,18 @@ fn main() {
             };
         }
     }
+
+    if args.is_present("get-secret-key") {
+        arg_hit = true;
+        if ask_pass_and_extract_key(&mut handle).unwrap() {
+            let secret_key = get_secret_key(&mut handle);
+            println!("{}", secret_key);
+        }
+    } else if args.is_present("set-secret-key") {
+        arg_hit = true;
+        if ask_pass_and_extract_key(&mut handle).unwrap() {}
+    }
+
     if !arg_hit {
         app.print_help().unwrap();
     }
