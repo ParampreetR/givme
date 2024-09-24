@@ -40,6 +40,7 @@ impl Credentials {
 pub enum OperatingSystem {
     Windows,
     Linux,
+    Mac,
     Other,
 }
 
