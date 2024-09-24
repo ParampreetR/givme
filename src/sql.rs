@@ -37,6 +37,30 @@ pub fn get_sql_con(handle: &mut GivMe) {
                     .unwrap(),
                 )
             }
+            OperatingSystem::Mac => {
+                std::fs::create_dir_all(
+                    format!(
+                        "{}/.config/givme",
+                        home::home_dir()
+                            .expect("Consider setting for home dir")
+                            .display()
+                    )
+                    .as_str(),
+                )
+                .unwrap();
+                Some(
+                    Connection::open(
+                        format!(
+                            "{}/.config/givme/cred.db",
+                            home::home_dir()
+                                .expect("Consider setting for home dir")
+                                .display()
+                        )
+                        .as_str(),
+                    )
+                    .unwrap(),
+                )
+            }
             OperatingSystem::Windows => {
                 std::fs::create_dir_all(
                     format!("C:\\Users\\{}\\givme", handle.username.as_ref().unwrap()).as_str(),
@@ -95,15 +119,29 @@ pub fn save_to_sql(cred: Credentials, handle: &mut GivMe) -> Result<(), sqlite::
     }
 
     let cred = cred.provide();
-    if handle
-        .sql_con
-        .as_ref()
-        .unwrap()
-        .prepare(format!("SELECT * FROM cred WHERE key = '{}'", cred.0))
-        .unwrap()
-        .column_count()
-        > 0
+
+
+    let mut statement = handle
+    .sql_con
+    .as_ref()
+    .unwrap()
+        .prepare("SELECT COUNT(*) FROM cred WHERE key = ?")
+        .unwrap();
+
+    let mut count: i64 = 0;
+
+    // Bind the key to the statement and execute
+    statement.bind(1, &*cred.0).unwrap();
+    
+    // Step through the result to get the count
+    while let sqlite::State::Row = statement.next().unwrap() {
+        count = statement.read::<i64>(0).unwrap(); // Read the first column (the count)
+    }
+
+
+    if count > 0
     {
+        println!("{}", count);
         println!("Record with key {} already exist", cred.0);
         print!("Do you want to overwrite? (y/n) ");
         std::io::stdout().flush().unwrap();

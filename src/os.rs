@@ -13,6 +13,7 @@ pub fn get_os_and_username(handle: &mut GivMe) {
     match OS {
         "linux" => handle.os = Some(OperatingSystem::Linux),
         "windows" => handle.os = Some(OperatingSystem::Windows),
+        "macos" => handle.os = Some(OperatingSystem::Mac),
         _ => handle.os = Some(OperatingSystem::Other),
     };
     handle.username = Some(whoami::username());
@@ -26,6 +27,16 @@ pub fn is_first_run(handle: &GivMe) -> Result<bool, String> {
     } else {
         match handle.os.as_ref().unwrap() {
             OperatingSystem::Linux => Ok(!(Path::new(
+                format!(
+                    "{}/.config/givme/cred.db",
+                    home::home_dir()
+                        .expect("Consider settings for home dir")
+                        .display()
+                )
+                .as_str(),
+            )
+            .exists())),
+            OperatingSystem::Mac => Ok(!(Path::new(
                 format!(
                     "{}/.config/givme/cred.db",
                     home::home_dir()
