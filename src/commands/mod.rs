@@ -4,6 +4,7 @@ mod decrypt_file;
 mod delete_value;
 mod encrypt_file;
 mod get_value;
+mod init_tool;
 mod save_value;
 mod secret_key;
 

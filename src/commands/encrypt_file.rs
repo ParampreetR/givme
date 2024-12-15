@@ -1,9 +1,4 @@
-use std::io::Error;
-
-use crate::{
-    enums::ErrorType, error::ErrorDetails, models, save_credentials, services,
-    utils::io::ask_user_for_value,
-};
+use crate::{models::error::ErrorDetails, services};
 
 use super::CommandStruct;
 

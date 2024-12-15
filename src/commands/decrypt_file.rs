@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{error::ErrorDetails, services};
+use crate::{models::error::ErrorDetails, services};
 
 use super::CommandStruct;
 

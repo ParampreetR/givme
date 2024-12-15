@@ -1,7 +1,8 @@
 use std::io::{self, Write};
 
 use crate::{
-    credentials::Credentials, enums::ErrorType, error::ErrorDetails, give_credentials, services,
+    models::{credentials::Credentials, enums::ErrorType, error::ErrorDetails},
+    services,
 };
 
 use super::CommandStruct;

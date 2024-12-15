@@ -1,18 +1,7 @@
-mod cred;
-pub use cred::*;
+pub mod services;
 
-mod services;
+pub mod commands;
 
-mod io;
-pub use io::*;
+pub mod models;
 
-mod os;
-pub use os::*;
-
-mod commands;
-mod config;
-
-mod models;
-pub use models::*;
-
-mod utils;
+pub mod utils;

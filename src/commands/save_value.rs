@@ -1,7 +1,8 @@
 use std::io::Error;
 
 use crate::{
-    enums::ErrorType, error::ErrorDetails, models, save_credentials, services,
+    models::{enums::ErrorType, error::ErrorDetails},
+    services,
     utils::io::ask_user_for_value,
 };
 
