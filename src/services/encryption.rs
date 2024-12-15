@@ -1,10 +1,8 @@
-use crate::models::credentials::Credentials;
 use crate::utils;
 use log::debug;
 use nettle::cipher::{Cipher, Des3, Twofish};
 use rpassword::read_password;
 use std::io::Write;
-use std::process::exit;
 use std::{fs, io};
 
 pub trait EncryptionService {
@@ -13,9 +11,9 @@ pub trait EncryptionService {
     }
     fn encrypt_file(&self, in_path: String, out_path: String) -> io::Result<()>;
     fn decrypt_file(&self, in_path: String, out_path: String) -> io::Result<()>;
-    fn get_secret_key(&self) -> String;
-    fn set_secret_key(&self);
-    fn encrypt(&self, data: String) -> Result<Vec<u8>, String>;
+    fn decrypt_secret_key(&self, secret_key: String) -> String;
+    fn encrypt_secret_key(&self) -> Option<String>;
+    fn encrypt(&self, data: String) -> Result<Vec<u8>, nettle::Error>;
     fn decrypt(&self, data: &[u8]) -> Result<String, String>;
 }
 
@@ -53,9 +51,8 @@ impl EncryptionService for Encryption {
     /// Retrieve secret key from the database
     /// This key is used in encryption process with one encryption standard and
     /// another key will be given by user
-    fn get_secret_key(&self) -> String {
-        let encrypted_key =
-            base64::decode(&self.sql_service.get_from_sql("secret_key")[0].value).unwrap();
+    fn decrypt_secret_key(&self, secret_key: String) -> String {
+        let encrypted_key = base64::decode(secret_key).unwrap();
         let decrypted_pass = self.decrypt(&encrypted_key);
 
         if decrypted_pass.is_err() {
@@ -70,7 +67,7 @@ impl EncryptionService for Encryption {
     ///
     /// This key is used in encryption process with one encryption standard and
     /// another key will be given by user when command will run
-    fn set_secret_key(&self) {
+    fn encrypt_secret_key(&self) -> Option<String> {
         let mut key;
         let mut confirm_key;
         let mut option: String = "".to_string();
@@ -99,11 +96,11 @@ impl EncryptionService for Encryption {
                     confirm_key = utils::helpers::adjust_password_length(&key, 32);
                 } else {
                     println!("Exiting...");
-                    exit(0)
+                    return None;
                 }
             } else {
                 println!("Exiting...");
-                exit(0)
+                return None;
             }
         }
 
@@ -111,19 +108,13 @@ impl EncryptionService for Encryption {
 
         let encrypted_final_key = base64::encode(encrypted);
         debug!("Adding to database");
-        self.sql_service
-            .save_to_sql(Credentials::new(
-                String::from("secret_key"),
-                encrypted_final_key,
-                String::new(),
-            ))
-            .unwrap();
+        Some(encrypted_final_key)
     }
 
     /// Encrypt given data with randomly generated string and
     /// user's master key. 2 Encryption algorithms are used
     /// TwoFish and 3DES.
-    fn encrypt(&self, data: String) -> Result<Vec<u8>, String> {
+    fn encrypt(&self, data: String) -> Result<Vec<u8>, nettle::Error> {
         let mut data_length: usize = 0;
         let mut filler = String::new();
 
@@ -152,11 +143,9 @@ impl EncryptionService for Encryption {
             two_step_encrypted.push(1);
         }
 
-        Twofish::with_encrypt_key(self.key.clone().as_bytes())
-            .unwrap()
+        Twofish::with_encrypt_key(self.key.clone().as_bytes())?
             .encrypt(&mut one_step_encrypted[..], &final_data.as_bytes());
-        Des3::with_encrypt_key(&self.password.clone().as_bytes())
-            .unwrap()
+        Des3::with_encrypt_key(&self.password.clone().as_bytes())?
             .encrypt(&mut two_step_encrypted[..], &one_step_encrypted);
         debug!("{:?}", &two_step_encrypted[..]);
         Ok(two_step_encrypted)

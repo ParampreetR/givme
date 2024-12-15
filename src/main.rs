@@ -10,13 +10,9 @@ fn main() {
     let mut app = parse_args();
     let args = app.clone().get_matches();
     let mut arg_hit = false;
-    let mut handle = GivMe::new();
-    get_os_and_username(&mut handle);
-    if is_first_run(&handle).unwrap() {
+    if is_first_run().unwrap() {
         run_setup(&mut handle).unwrap();
         std::process::exit(0);
-    } else {
-        get_sql_con(&mut handle);
     }
 
     if args.is_present("encrypt-file") {

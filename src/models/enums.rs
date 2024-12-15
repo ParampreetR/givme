@@ -20,3 +20,9 @@ pub fn get_os_and_username() -> Option<OperatingSystem> {
         _ => Some(OperatingSystem::Other),
     }
 }
+
+pub enum ErrorType {
+    Sqlite,
+    IO,
+    Nettle,
+}

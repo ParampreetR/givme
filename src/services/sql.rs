@@ -9,11 +9,11 @@ pub trait SqliteService {
         SqliteStruct { connection }
     }
 
-    fn get_from_sql(&self, key: &str) -> Vec<Credentials>;
+    fn get_from_sql(&self, key: &str) -> Result<Vec<Credentials>, sqlite::Error>;
     fn save_to_sql(&self, cred: Credentials) -> Result<(), sqlite::Error>;
     fn del_from_sql(&self, key: String) -> Result<(), sqlite::Error>;
 
-    fn already_exist_in_sql(&self, key: String) -> Result<bool, sqlite::Error>;
+    fn already_exist_in_sql(&self, key: &str) -> Result<bool, sqlite::Error>;
 }
 
 pub struct SqliteStruct {
@@ -22,24 +22,23 @@ pub struct SqliteStruct {
 
 impl SqliteService for SqliteStruct {
     /// Retreive Data from Sqlite Database by querying given key
-    fn get_from_sql(&self, key: &str) -> Vec<Credentials> {
+    fn get_from_sql(&self, key: &str) -> Result<Vec<Credentials>, sqlite::Error> {
         let mut statement = self
             .connection
-            .prepare(format!("SELECT * FROM cred WHERE key = '{}'", key))
-            .unwrap();
+            .prepare(format!("SELECT * FROM cred WHERE key = '{}'", key))?;
         let mut cred: Credentials;
         let mut cred_vec: Vec<Credentials> = Vec::new();
 
-        while let State::Row = statement.next().unwrap() {
+        while let State::Row = statement.next()? {
             cred = Credentials::new(
-                statement.read::<String>(0).unwrap(),
-                statement.read::<String>(1).unwrap(),
-                statement.read::<String>(2).unwrap(),
+                statement.read::<String>(0)?,
+                statement.read::<String>(1)?,
+                statement.read::<String>(2)?,
             );
             cred_vec.push(cred);
         }
 
-        cred_vec
+        Ok(cred_vec)
     }
 
     /// Saves data to Sqlite database
@@ -97,10 +96,10 @@ impl SqliteService for SqliteStruct {
     }
 
     /// Checks if value already exist in Sqlite
-    fn already_exist_in_sql(&self, key: String) -> Result<bool, sqlite::Error> {
+    fn already_exist_in_sql(&self, key: &str) -> Result<bool, sqlite::Error> {
         match self
             .connection
-            .prepare(format!("SELECT value FROM cred WHERE key = '{}'", &key))
+            .prepare(format!("SELECT value FROM cred WHERE key = '{}'", key))
         {
             Ok(mut r) => {
                 if r.next().unwrap() == sqlite::State::Row {
