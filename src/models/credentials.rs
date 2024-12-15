@@ -11,14 +11,14 @@ impl Credentials {
     pub fn new(key: String, value: String, info: String) -> Self {
         if info.is_empty() {
             Credentials {
-                key: key,
-                value: value,
+                key,
+                value,
                 info: None,
             }
         } else {
             Credentials {
-                key: key,
-                value: value,
+                key,
+                value,
                 info: Some(info),
             }
         }

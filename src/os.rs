@@ -1,24 +1,5 @@
-use crate::io::{debug, DEBUG};
 use crate::models::enums::OperatingSystem;
-use crate::models::givme::GivMe;
-use std::env::consts::OS;
 use std::path::Path;
-
-/// Checks for current OS and user. Populate in provided
-/// `GivMe` struct
-///
-/// Only supports Windows and Linux. Rest are included in
-/// other OS.
-pub fn get_os_and_username(handle: &mut GivMe) {
-    debug(OS);
-    match OS {
-        "linux" => handle.os = Some(OperatingSystem::Linux),
-        "windows" => handle.os = Some(OperatingSystem::Windows),
-        "macos" => handle.os = Some(OperatingSystem::Mac),
-        _ => handle.os = Some(OperatingSystem::Other),
-    };
-    handle.username = Some(whoami::username());
-}
 
 /// Check if our database file exist. If not, then
 /// this is our first run.

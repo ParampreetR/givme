@@ -1,3 +1,4 @@
 pub mod credentials;
+pub mod dependencies;
 pub mod enums;
-pub mod givme;
+pub mod services;
