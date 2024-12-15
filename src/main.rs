@@ -1,5 +1,10 @@
-use givme::*;
 use std::{io, io::Write};
+
+use givme::{
+    ask_pass_and_extract_key, ask_user_for_value, decrypt_file, delete_credentails, encrypt_file,
+    get_os_and_username, get_secret_key, get_sql_con, give_credentials, givme::GivMe, is_first_run,
+    parse_args, run_setup, save_credentials, show_credentials,
+};
 
 fn main() {
     let mut app = parse_args();

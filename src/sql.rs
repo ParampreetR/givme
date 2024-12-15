@@ -1,7 +1,9 @@
 use std::io::Write;
 
-use crate::io::{debug, DEBUG};
-use crate::structs::*;
+use crate::{
+    io::{debug, DEBUG},
+    models::{credentials::Credentials, enums::OperatingSystem, givme::GivMe},
+};
 use sqlite::{Connection, State};
 
 /// Open new Sql Connection to file and populate it in
@@ -120,11 +122,10 @@ pub fn save_to_sql(cred: Credentials, handle: &mut GivMe) -> Result<(), sqlite::
 
     let cred = cred.provide();
 
-
     let mut statement = handle
-    .sql_con
-    .as_ref()
-    .unwrap()
+        .sql_con
+        .as_ref()
+        .unwrap()
         .prepare("SELECT COUNT(*) FROM cred WHERE key = ?")
         .unwrap();
 
@@ -132,15 +133,13 @@ pub fn save_to_sql(cred: Credentials, handle: &mut GivMe) -> Result<(), sqlite::
 
     // Bind the key to the statement and execute
     statement.bind(1, &*cred.0).unwrap();
-    
+
     // Step through the result to get the count
     while let sqlite::State::Row = statement.next().unwrap() {
         count = statement.read::<i64>(0).unwrap(); // Read the first column (the count)
     }
 
-
-    if count > 0
-    {
+    if count > 0 {
         println!("{}", count);
         println!("Record with key {} already exist", cred.0);
         print!("Do you want to overwrite? (y/n) ");

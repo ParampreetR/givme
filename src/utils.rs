@@ -1,7 +1,8 @@
 use crate::encryption::encrypt;
 use crate::io::debug;
+use crate::models::credentials::Credentials;
+use crate::models::givme::GivMe;
 use crate::sql::{save_to_sql, setup_sql};
-use crate::structs::{Credentials, GivMe};
 use rand::random;
 use rpassword::read_password;
 use std::io::Write;

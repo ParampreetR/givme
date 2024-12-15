@@ -1,6 +1,7 @@
 use crate::encryption::{decrypt, encrypt};
+use crate::models::credentials::Credentials;
+use crate::models::givme::GivMe;
 use crate::sql::*;
-use crate::structs::{Credentials, GivMe};
 
 /// A sort of wrapper to `get_from_sql()`. This function take
 /// care of all encryption and decryption needed to retreive

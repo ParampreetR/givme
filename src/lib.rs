@@ -13,8 +13,8 @@ pub use os::*;
 mod sql;
 pub use sql::*;
 
-mod structs;
-pub use structs::*;
+mod models;
+pub use models::*;
 
 mod utils;
 pub use utils::*;

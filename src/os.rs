@@ -1,5 +1,6 @@
 use crate::io::{debug, DEBUG};
-use crate::structs::{GivMe, OperatingSystem};
+use crate::models::enums::OperatingSystem;
+use crate::models::givme::GivMe;
 use std::env::consts::OS;
 use std::path::Path;
 

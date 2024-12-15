@@ -1,7 +1,7 @@
-use crate::encryption::decrypt;
+use crate::models::credentials::Credentials;
 use crate::sql::get_from_sql;
-use crate::structs::{Credentials, GivMe};
 use crate::utils::*;
+use crate::{encryption::decrypt, models::givme::GivMe};
 use clap::{App, Arg};
 use lazy_static::lazy_static;
 use rpassword::read_password;

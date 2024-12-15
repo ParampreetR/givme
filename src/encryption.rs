@@ -1,6 +1,6 @@
+use crate::models::credentials::Credentials;
+use crate::models::givme::GivMe;
 use crate::save_to_sql;
-use crate::structs::GivMe;
-use crate::Credentials;
 use crate::{adjust_password_length, get_from_sql, io::*};
 use nettle::cipher::{Cipher, Des3, Twofish};
 use rpassword::read_password;
