@@ -4,7 +4,7 @@ use log::debug;
 use rpassword::read_password;
 
 use crate::{
-    models::{credentials::Credentials, error::ErrorDetails},
+    models::credentials::Credentials,
     services,
     utils::helpers::{adjust_password_length, rand_string, BANNER},
 };
@@ -14,7 +14,7 @@ use super::CommandStruct;
 impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::EncryptionService>
     CommandStruct<SqlSrv, EncSrv>
 {
-    fn init_setup(&self, key: String) -> Result<(), ErrorDetails> {
+    fn init_setup(&mut self, key: String) -> anyhow::Result<(), anyhow::Error> {
         let common_passes = vec![
             "123456",
             "123456789",
@@ -68,11 +68,7 @@ impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::Encrypt
         let encrypted_final_key = base64::encode(encrypted);
         debug!("Adding to database");
         self.sql_service
-            .save_to_sql(Credentials::new(
-                String::from("secret_key"),
-                encrypted_final_key,
-                String::new(),
-            ))
+            .save_to_sql(Credentials::new("secret_key", &encrypted_final_key, ""))
             .unwrap();
         //println!("{}", password);
         Ok(())

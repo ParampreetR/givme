@@ -1,6 +1,10 @@
-/// Used as a wrapper for data from/to Database
-#[derive(Clone, Debug)]
+use diesel::prelude::*;
+
+#[derive(Queryable, Selectable, Clone, Debug, Insertable)]
+#[diesel(table_name = crate::utils::schema::credentials)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Credentials {
+    pub id: i32,
     pub key: String,
     pub value: String,
     pub info: Option<String>,
@@ -8,18 +12,20 @@ pub struct Credentials {
 
 impl Credentials {
     /// Create new instance of `Credentials`
-    pub fn new(key: String, value: String, info: String) -> Self {
+    pub fn new(key: &str, value: &str, info: &str) -> Self {
         if info.is_empty() {
             Credentials {
-                key,
-                value,
+                id: 0,
+                key: key.to_string(),
+                value: value.to_string(),
                 info: None,
             }
         } else {
             Credentials {
-                key,
-                value,
-                info: Some(info),
+                id: 0,
+                key: key.to_string(),
+                value: value.to_string(),
+                info: Some(info.to_string()),
             }
         }
     }

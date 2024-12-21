@@ -8,7 +8,7 @@ mod init_tool;
 mod save_value;
 mod secret_key;
 
-struct CommandStruct<
+pub struct CommandStruct<
     SqlSrv: services::sql::SqliteService,
     EncSrv: services::encryption::EncryptionService,
 > {

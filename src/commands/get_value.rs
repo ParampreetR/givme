@@ -1,26 +1,22 @@
 use std::io::{self, Write};
 
-use crate::{
-    models::{credentials::Credentials, enums::ErrorType, error::ErrorDetails},
-    services,
-};
+use crate::{models::credentials::Credentials, services};
 
 use super::CommandStruct;
 
 impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::EncryptionService>
     CommandStruct<SqlSrv, EncSrv>
 {
-    fn get_decrypt_value(&self, key: String) -> Result<(), ErrorDetails> {
-        let original_key = base64::encode(self.encryption_service.encrypt(key.clone()).unwrap());
+    pub fn get_decrypt_value(&mut self, key: &str) -> anyhow::Result<String, anyhow::Error> {
+        let original_key =
+            base64::encode(self.encryption_service.encrypt(key.to_string()).unwrap());
         let mut creds: Vec<Credentials> = self.sql_service.get_from_sql(&original_key)?;
         if creds.is_empty() {
-            return Err(ErrorDetails::new(
-                None,
-                Some("Unable to retrieve value, record may not exist".to_string()),
-                ErrorType::Sqlite,
+            return Err(anyhow::anyhow!(
+                "Unable to retrieve value, record may not exist",
             ));
         } else {
-            creds[0].key = key;
+            creds[0].key = key.to_string();
             creds[0].value = self
                 .encryption_service
                 .decrypt(&base64::decode(creds[0].value.clone()).unwrap())
@@ -38,7 +34,7 @@ impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::Encrypt
                 print!("{:?}", creds[0].clone());
             }
             io::stdout().flush().unwrap();
-            Ok(())
+            Ok(format!("{:?}", creds[0].clone()))
         }
     }
 }

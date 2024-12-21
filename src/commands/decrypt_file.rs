@@ -1,6 +1,4 @@
-use std::io::{self, Write};
-
-use crate::{models::error::ErrorDetails, services};
+use crate::services;
 
 use super::CommandStruct;
 
@@ -11,7 +9,7 @@ impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::Encrypt
         &self,
         encrypted_filepath: String,
         destpath: String,
-    ) -> Result<(), ErrorDetails> {
+    ) -> anyhow::Result<(), anyhow::Error> {
         self.encryption_service
             .decrypt_file(encrypted_filepath.clone(), destpath.clone())?;
 

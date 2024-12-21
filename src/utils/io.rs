@@ -4,16 +4,10 @@ use rpassword::read_password;
 
 use crate::models::credentials::Credentials;
 
-pub fn ask_user_for_value(key: &str) -> Result<Credentials, std::io::Error> {
-    print!("Enter your '{}': ", key);
-    std::io::stdout().flush()?;
-    let password = read_password().unwrap().trim().to_string();
-    print!("Any note for yourself: ");
-    std::io::stdout().flush()?;
-    let mut info = String::new();
-    std::io::stdin().read_line(&mut info)?;
-    info = info.trim().to_string();
-    Ok(Credentials::new(key.to_string(), password, info))
+pub fn ask_user_for_value(key: &str) -> anyhow::Result<Credentials, anyhow::Error> {
+    let value_to_save = inquire::prompt_secret("Value: ")?;
+    let note_to_save = inquire::prompt_text("Note (Optional): ")?;
+    Ok(Credentials::new(key, &value_to_save, &note_to_save))
 }
 
 /// Check if our database file exist. If not, then

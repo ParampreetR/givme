@@ -1,115 +1,78 @@
-use std::io::Write;
-
-use crate::models::{credentials::Credentials, enums::OperatingSystem};
-use log::{debug, error};
-use sqlite::{Connection, State};
+use crate::{models::credentials::Credentials, utils};
+use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods, RunQueryDsl, SqliteConnection};
+use inquire::error::InquireResult;
+use utils::schema::credentials::dsl::*;
 
 pub trait SqliteService {
-    fn new(connection: Connection) -> impl SqliteService {
+    fn new(connection: SqliteConnection) -> impl SqliteService {
         SqliteStruct { connection }
     }
 
-    fn get_from_sql(&self, key: &str) -> Result<Vec<Credentials>, sqlite::Error>;
-    fn save_to_sql(&self, cred: Credentials) -> Result<(), sqlite::Error>;
-    fn del_from_sql(&self, key: String) -> Result<(), sqlite::Error>;
-
-    fn already_exist_in_sql(&self, key: &str) -> Result<bool, sqlite::Error>;
+    fn get_from_sql(&mut self, key: &str) -> Result<Vec<Credentials>, anyhow::Error>;
+    fn save_to_sql(&mut self, cred: Credentials) -> Result<(), anyhow::Error>;
+    fn del_from_sql(&mut self, key: String) -> Result<(), anyhow::Error>;
+    fn already_exist_in_sql(&mut self, key: &str) -> Result<bool, anyhow::Error>;
 }
 
 pub struct SqliteStruct {
-    connection: Connection,
+    connection: SqliteConnection,
 }
 
 impl SqliteService for SqliteStruct {
     /// Retreive Data from Sqlite Database by querying given key
-    fn get_from_sql(&self, key: &str) -> Result<Vec<Credentials>, sqlite::Error> {
-        let mut statement = self
-            .connection
-            .prepare(format!("SELECT * FROM cred WHERE key = '{}'", key))?;
-        let mut cred: Credentials;
-        let mut cred_vec: Vec<Credentials> = Vec::new();
+    fn get_from_sql(&mut self, user_key: &str) -> Result<Vec<Credentials>, anyhow::Error> {
+        let credentails_result: Vec<Credentials> =
+            credentials.filter(key.eq(key)).load(&mut self.connection)?;
 
-        while let State::Row = statement.next()? {
-            cred = Credentials::new(
-                statement.read::<String>(0)?,
-                statement.read::<String>(1)?,
-                statement.read::<String>(2)?,
+        let mut credentials_vector = vec![];
+
+        for credential in credentails_result {
+            let cred_struct = Credentials::new(
+                &credential.key,
+                &credential.value,
+                &credential.info.unwrap_or_else(|| return "".to_string()),
             );
-            cred_vec.push(cred);
+
+            credentials_vector.push(cred_struct);
         }
 
-        Ok(cred_vec)
+        Ok(credentials_vector)
     }
 
     /// Saves data to Sqlite database
-    fn save_to_sql(&self, cred: Credentials) -> Result<(), sqlite::Error> {
-        let mut option = String::new();
+    fn save_to_sql(&mut self, cred: Credentials) -> Result<(), anyhow::Error> {
+        let credentials_from_table = self.get_from_sql(&cred.key)?;
 
-        let cred = cred.provide();
-
-        let mut statement = self
-            .connection
-            .prepare("SELECT COUNT(*) FROM cred WHERE key = ?")
-            .unwrap();
-
-        let mut count: i64 = 0;
-
-        // Bind the key to the statement and execute
-        statement.bind(1, &*cred.0).unwrap();
-
-        // Step through the result to get the count
-        while let sqlite::State::Row = statement.next().unwrap() {
-            count = statement.read::<i64>(0).unwrap(); // Read the first column (the count)
-        }
-
-        if count > 0 {
-            println!("{}", count);
-            println!("Record with key {} already exist", cred.0);
-            print!("Do you want to overwrite? (y/n) ");
-            std::io::stdout().flush().unwrap();
-            std::io::stdin().read_line(&mut option).unwrap();
-            if option.chars().next().is_some() {
-                if option.to_lowercase().chars().next().unwrap() == 'y' {
-                    self.connection
-                        .execute(format!(
-                            "UPDATE cred SET value = '{}' info = '{}' WHERE key = '{}'",
-                            cred.1, cred.2, cred.0
-                        ))
-                        .unwrap();
+        if credentials_from_table.len() > 0 {
+            println!("{:?}", credentials_from_table);
+            match inquire::prompt_confirmation("Record already exist. Overwrite? ") {
+                InquireResult::Ok(true) => {
+                    diesel::update(credentials)
+                        .filter(key.eq(&cred.key))
+                        .set((key.eq(&cred.key), value.eq(cred.value), info.eq(cred.info)))
+                        .execute(&mut self.connection);
                 }
+                InquireResult::Ok(false) => {}
+                InquireResult::Err(err) => return Err(err.into()),
             }
         } else {
-            self.connection
-                .execute(format!(
-                    "INSERT INTO cred VALUES ('{}', '{}', '{}')",
-                    cred.0, cred.1, cred.2
-                ))
-                .unwrap();
+            diesel::insert_into(credentials)
+                .values(&cred)
+                .execute(&mut self.connection);
         }
         Ok(())
     }
 
     /// Deletes data to Sqlite database
-    fn del_from_sql(&self, key: String) -> Result<(), sqlite::Error> {
-        self.connection
-            .execute(format!("DELETE FROM cred WHERE key='{}'", key))
+    fn del_from_sql(&mut self, user_key: String) -> Result<(), anyhow::Error> {
+        diesel::delete(credentials)
+            .filter(key.eq(user_key))
+            .execute(&mut self.connection)?;
+        Ok(())
     }
 
     /// Checks if value already exist in Sqlite
-    fn already_exist_in_sql(&self, key: &str) -> Result<bool, sqlite::Error> {
-        match self
-            .connection
-            .prepare(format!("SELECT value FROM cred WHERE key = '{}'", key))
-        {
-            Ok(mut r) => {
-                if r.next().unwrap() == sqlite::State::Row {
-                    //                println!("Exist {:?}", a);
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
-            }
-            Err(err) => Err(err),
-        }
+    fn already_exist_in_sql(&mut self, user_key: &str) -> Result<bool, anyhow::Error> {
+        return Ok(self.get_from_sql(user_key)?.len() > 0);
     }
 }

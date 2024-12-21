@@ -1,8 +1,4 @@
-use crate::models::credentials::Credentials;
-use log::debug;
 use rand::random;
-use rpassword::read_password;
-use std::io::Write;
 
 pub const BANNER: &str =
     "████████████████████████████████████████████████████████████████████████████████

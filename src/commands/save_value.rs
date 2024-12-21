@@ -1,27 +1,19 @@
 use std::io::Error;
 
-use crate::{
-    models::{enums::ErrorType, error::ErrorDetails},
-    services,
-    utils::io::ask_user_for_value,
-};
+use crate::{services, utils::io::ask_user_for_value};
 
 use super::CommandStruct;
 
 impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::EncryptionService>
     CommandStruct<SqlSrv, EncSrv>
 {
-    fn save_encrypt_value(&self, key: String) -> Result<(), ErrorDetails> {
+    pub fn save_encrypt_value(&mut self, key: String) -> anyhow::Result<String, anyhow::Error> {
         let mut cred = ask_user_for_value(&key).unwrap();
 
         match self.sql_service.already_exist_in_sql(&cred.key) {
             Ok(exist) => {
                 if exist {
-                    return Err(ErrorDetails::new(
-                        None,
-                        Some("Key already exist in SQLite".to_string()),
-                        ErrorType::Sqlite,
-                    ));
+                    return Err(anyhow::anyhow!("key with the same name already exist"));
                 } else {
                     cred.value =
                         base64::encode(self.encryption_service.encrypt(cred.value).unwrap());
@@ -32,7 +24,7 @@ impl<SqlSrv: services::sql::SqliteService, EncSrv: services::encryption::Encrypt
                     }
 
                     self.sql_service.save_to_sql(cred)?;
-                    return Ok(());
+                    return Ok(format!("Saved Successfully!"));
                 }
             }
             Err(e) => Err(e.into()),

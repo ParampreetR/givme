@@ -1,18 +1,23 @@
-use std::{env, fs, io::Write, os};
+use std::{env, error::Error, fs, io::Write, os};
 
+use diesel::{sqlite::Sqlite, Connection, ConnectionResult, SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use inquire::Password;
 use log::{debug, error};
 use rpassword::read_password;
-use sqlite::Connection;
 use whoami::username;
 
 use crate::{
-    enums, models, services,
+    models, services,
     utils::{self, helpers},
 };
 
-fn init_services() -> models::dependencies::Dependencies<
-    impl services::encryption::EncryptionService,
-    impl services::sql::SqliteService,
+pub fn init_services() -> anyhow::Result<
+    models::dependencies::Dependencies<
+        impl services::encryption::EncryptionService,
+        impl services::sql::SqliteService,
+    >,
+    anyhow::Error,
 > {
     utils::logger::init_logger();
     let sql_connection = get_sql_con().expect("Unable to open Sql Connection");
@@ -25,71 +30,83 @@ fn init_services() -> models::dependencies::Dependencies<
             "".to_string(),
         );
 
-    let services = models::services::Services {
+    let mut services = models::services::Services {
         encryption: enc_service,
         sql: sql_service,
     };
 
     let master_pass = ask_master_pass();
-    let secret_key = extract_secret_key(&services).expect("Unable to extract secret key");
+    let secret_key = extract_secret_key(&mut services)?;
 
-    models::dependencies::Dependencies {
+    Ok(models::dependencies::Dependencies {
         key: secret_key,
-        password: master_pass,
-        os: enums::get_os_and_username().expect("OS not supported"),
+        password: master_pass?,
+        os: models::enums::get_os_and_username().expect("OS not supported"),
         username: username(),
         services,
-    }
+    })
 }
 
 fn extract_secret_key(
-    services: &models::services::Services<
-        impl services::encryption::EncryptionService,
+    services: &mut models::services::Services<
         impl services::sql::SqliteService,
+        impl services::encryption::EncryptionService,
     >,
-) -> Result<String, String> {
-    let encrypted_key = base64::decode(&services.sql.get_from_sql("secret_key")[0].value).unwrap();
-    let decrypted_pass = services.encryption.decrypt(&encrypted_key);
-
-    if decrypted_pass.is_err() {
-        eprintln!("Error: Invalid Password");
-        return Err(decrypted_pass.unwrap_err());
-    }
-    let decrypted_pass = decrypted_pass.unwrap();
+) -> anyhow::Result<String, anyhow::Error> {
+    let encrypted_key = base64::decode(
+        services.sql.get_from_sql("secret_key").unwrap()[0]
+            .value
+            .clone(),
+    )
+    .unwrap();
+    let decrypted_pass = services.encryption.decrypt(&encrypted_key)?;
 
     debug!("Decrypted pass: {}", decrypted_pass);
     return Ok((&decrypted_pass)[4..32].to_string());
 }
 
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+
 /// SetUp Sqlite Database. Like create new Database file and Create
 /// new table in newly created Database file
-fn setup_sql(sql_connection: Connection) {
-    match sql_connection.execute("CREATE TABLE cred (key TEXT, value TEXT, info TEXT)") {
-        Ok(_) => {}
-        Err(e) => {
-            error!("{e}");
-        }
-    };
+fn migrate_changes(
+    connection: &mut impl MigrationHarness<Sqlite>,
+) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    // This will run the necessary migrations.
+    //
+    // See the documentation for `MigrationHarness` for
+    // all available methods.
+    connection.run_pending_migrations(MIGRATIONS)?;
+
+    Ok(())
 }
 
 /// Open new Sql Connection to file and populate it in
 /// `GivMe` Struct.
 ///
 /// Behaviour changes when DEBUG is enabled
-fn get_sql_con() -> Option<Connection> {
+fn get_sql_con() -> ConnectionResult<SqliteConnection> {
     let config_dir = dirs::config_dir().expect("Unable to get config dir");
     if env::var("DEBUG").is_ok() {
-        Some(Connection::open("./cred_debug.db").unwrap())
+        SqliteConnection::establish("./cred_debug.db")
     } else {
-        fs::create_dir_all(config_dir.join("./givme").to_str().unwrap());
-        Some(Connection::open(config_dir.join("./givme/cred.db")).unwrap())
+        fs::create_dir_all(
+            config_dir
+                .join("./givme")
+                .to_str()
+                .expect("unable to get config dir path"),
+        );
+        SqliteConnection::establish(
+            config_dir
+                .join("./givme/cred.db")
+                .to_str()
+                .expect("unable to get config dir path"),
+        )
     }
 }
 
-pub fn ask_master_pass() -> String {
-    eprint!("Enter your Master Key: ");
-    std::io::stdout().flush().unwrap();
-    let user_entered_pass = read_password().unwrap().trim().to_string();
-    let proper_length_password = helpers::adjust_password_length(&user_entered_pass, 24);
-    return proper_length_password;
+pub fn ask_master_pass() -> anyhow::Result<String, anyhow::Error> {
+    let master_pass = Password::new("Enter your Master Key: ").prompt()?;
+    let proper_length_password = helpers::adjust_password_length(&master_pass, 24);
+    return Ok(proper_length_password);
 }

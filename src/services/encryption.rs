@@ -9,12 +9,12 @@ pub trait EncryptionService {
     fn new(password: String, key: String) -> impl EncryptionService {
         Encryption { key, password }
     }
-    fn encrypt_file(&self, in_path: String, out_path: String) -> io::Result<()>;
+    fn encrypt_file(&self, in_path: &str, out_path: &str) -> io::Result<()>;
     fn decrypt_file(&self, in_path: String, out_path: String) -> io::Result<()>;
     fn decrypt_secret_key(&self, secret_key: String) -> String;
     fn encrypt_secret_key(&self) -> Option<String>;
     fn encrypt(&self, data: String) -> Result<Vec<u8>, nettle::Error>;
-    fn decrypt(&self, data: &[u8]) -> Result<String, String>;
+    fn decrypt(&self, data: &[u8]) -> anyhow::Result<String, anyhow::Error>;
 }
 
 pub struct Encryption {
@@ -28,9 +28,9 @@ impl EncryptionService for Encryption {
     ///
     /// ~This function do not empose any restrictions on size of file.
     /// On large files, use at own risk
-    fn encrypt_file(&self, in_path: String, out_path: String) -> io::Result<()> {
+    fn encrypt_file(&self, in_path: &str, out_path: &str) -> io::Result<()> {
         fs::write(&out_path, "".to_string())?; /* Check if we have privileges to write to target dest */
-        let data = std::fs::read(&in_path)?;
+        let data = std::fs::read(in_path)?;
         let encrypted_data = base64::encode(self.encrypt(base64::encode(data)).unwrap());
         fs::write(&out_path, encrypted_data)
     }
@@ -154,13 +154,16 @@ impl EncryptionService for Encryption {
     /// Decrypt given data with randomly generated string and
     /// user's master key. 2 algorithms are used
     /// TwoFish and TrippleDES.
-    fn decrypt(&self, data: &[u8]) -> Result<String, String> {
+    fn decrypt(&self, data: &[u8]) -> anyhow::Result<String, anyhow::Error> {
         let data_length: usize = data.len();
         //println!("{:?}", data);
 
         if data_length % Twofish::BLOCK_SIZE != 0 {
             println!("{} {}", data_length, Twofish::BLOCK_SIZE);
-            return Err(String::from("Invalid data"));
+            return Err(anyhow::anyhow!(
+                "Invalid data length: not a mulitple of Twofish block size {}",
+                Twofish::BLOCK_SIZE
+            ));
         }
 
         debug!("Data suppied for dencryption is in {} bytes", data_length);
@@ -172,16 +175,14 @@ impl EncryptionService for Encryption {
             two_step_decrypted.push(1);
         }
 
-        Des3::with_decrypt_key(self.password.as_bytes())
-            .unwrap()
+        Des3::with_decrypt_key(self.password.as_bytes())?
             .decrypt(&mut one_step_decrypted[..], data);
-        Twofish::with_decrypt_key(self.key.as_bytes())
-            .unwrap()
+        Twofish::with_decrypt_key(self.key.as_bytes())?
             .decrypt(&mut two_step_decrypted[..], &one_step_decrypted);
         debug!("{:?}", &two_step_decrypted[..]);
         match std::str::from_utf8(&two_step_decrypted) {
             Ok(v) => Ok(v.trim_matches(char::from(0)).to_string()),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(e.into()),
         }
     }
 }
